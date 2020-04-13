@@ -21,7 +21,7 @@ def get_args():
                         default='admin', help='User')
     parser.add_argument('-pwd', '--password', required=True, action='store',
                         help='Password')
-    parser.add_argument('-a', '--action', required=True, choices=['list', 'backup'],
+    parser.add_argument('-a', '--action', required=True, choices=['list', 'backup', 'monitor'],
                         help='Choose to list all protected VMs or ad-hoc backup a VM')
     parser.add_argument('-n', '--name', required=('backup' in sys.argv and '-id' not in sys.argv),
                         action='store', default=None,
@@ -29,8 +29,13 @@ def get_args():
     parser.add_argument('-id', '--id', required=('backup' in sys.argv and '-n' not in sys.argv),
                         action='store',
                         default=None, help='Optionally provide the Asset ID to backup')
+    parser.add_argument('-activity_id', '--activity_id', required=('monitor' in sys.argv),
+                        action='store',
+                        help='Optionally provide the Asset ID to monitor')
     parser.add_argument('-f', '--full', required=False, action='store_true',
                         default=False, help='Optionally force full VM backup')
+    parser.add_argument('-nmonitor', '--no-monitor', required=False, action='store_true', dest='nmonitor',
+                        default=False, help='Optionally prevents monitoring of backup process')
     args = parser.parse_args()
     return args
 
@@ -154,29 +159,36 @@ def main():
     port = "8443"
     apiendpoint = "/api/v2"
     args = get_args()
-    ppdm, user, password, action, name, id, full = args.server, args.user, args.password, args.action, args.name, args.id, args.full
+    ppdm, user, password, action, name, id = args.server, args.user, args.password, args.action, args.name, args.id
+    full, nmonitor, aid = args.full, args.nmonitor, args.activity_id
     uri = "https://{}:{}{}".format(ppdm, port, apiendpoint)
     token = authenticate(ppdm, user, password, uri)
-    vms = get_asset(uri, token, name, id)
-    if len(vms) == 0:
-        print('Virtual Machine asset could not be found')
-    if (action == 'list'):
-        for asset in vms:
-            print("---------------------------------------------------------")
-            print("Asset ID:", asset["id"])
-            print("Asset Name:", asset["name"])
-            print("Asset Type:", asset["type"])
-            print("Last Backup Time:", asset["lastAvailableCopyTime"])
-            print()
-    elif (len(vms) > 1):
-        print ("VM Name {} yielded in more than 1 result".format(name))
-        print("Narrow down the results using the --action list paramater")
-    elif (len(vms) == 1):
-        print("Performing Ad-hoc backup for VM", vms[0]["name"])
-        activityid = adhoc_backup(uri, token, vms[0]["id"], full)
-        if activityid == None:
-            next
-        monitor_activity(uri, token, activityid)
+    if (action == 'monitor'):
+        monitor_activity(uri, token, aid)
+    else:
+        vms = get_asset(uri, token, name, id)
+        if len(vms) == 0:
+            print('Virtual Machine asset could not be found')
+        if (action == 'list'):
+            for asset in vms:
+                print("---------------------------------------------------------")
+                print("Asset ID:", asset["id"])
+                print("Asset Name:", asset["name"])
+                print("Asset Type:", asset["type"])
+                print("Last Backup Time:", asset["lastAvailableCopyTime"])
+                print()
+        elif (len(vms) > 1):
+            print ("VM Name {} yielded in more than 1 result".format(name))
+            print("Narrow down the results using the --action list paramater")
+        elif (len(vms) == 1):
+            print("Performing Ad-hoc backup for VM", vms[0]["name"])
+            activityid = adhoc_backup(uri, token, vms[0]["id"], full)
+            if (activityid == None):
+                next
+            elif (not nmonitor):
+                monitor_activity(uri, token, activityid)
+            else:
+                print("Activity ID:",activityid)
     logout(ppdm, user, uri, token)
 
 if __name__ == "__main__":
