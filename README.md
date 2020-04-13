@@ -5,7 +5,7 @@ This repository contains Python scripts for common flows in Dell EMC PowerProtec
 - **Parimala Guruprasad** - [Dell EMC](https://www.dellemc.com)
 - **Qi Wang** - [Dell EMC](https://www.dellemc.com)
 ## Supported Platforms
-- PowerProtect Data Manager 19.3
+- PowerProtect Data Manager 19.3/19.4
 ## Prerequisites
 - Python 3.x
 ## Documentation
