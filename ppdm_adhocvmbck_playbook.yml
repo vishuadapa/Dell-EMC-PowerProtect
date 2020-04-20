@@ -1,0 +1,20 @@
+---
+
+- name: PowerProtect Ad-hoc VM Backup Playbook
+  hosts: all
+  gather_facts: no
+  tasks:
+
+  - name: Ad-hoc backup
+    script: /files/adhocvmck.py -s ppdm_prod01.bestcustomer.com -pwd ChangeMe123! -a backup -n Prod_DB01 -nmonitor -outfile /files/ppdm_bck.cfg
+    args:
+      executable: /usr/bin/python3
+    register: out
+  - debug: var=out.stdout_lines
+
+  - name: Monitor backup
+    script: /files/adhocvmck.py -s ppdm_prod.bestcustomer.com -pwd ChangeMe123! -a monitor -aidfile /files/ppdm_bck.cfg
+    args:
+      executable: /usr/bin/python3
+    register: out
+  - debug: var=out.stdout_lines
