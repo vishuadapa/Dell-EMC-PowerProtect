@@ -29,13 +29,18 @@ def get_args():
     parser.add_argument('-id', '--id', required=('backup' in sys.argv and '-n' not in sys.argv),
                         action='store',
                         default=None, help='Optionally provide the Asset ID to backup')
-    parser.add_argument('-activity_id', '--activity_id', required=('monitor' in sys.argv),
+    parser.add_argument('-activity_id', '--activity_id', required=('monitor' in sys.argv and '-aidfile' not in sys.argv),
                         action='store',
                         help='Optionally provide the Asset ID to monitor')
-    parser.add_argument('-f', '--full', required=False, action='store_true',
+    parser.add_argument('-full', '--full', required=False, action='store_true',
                         default=False, help='Optionally force full VM backup')
     parser.add_argument('-nmonitor', '--no-monitor', required=False, action='store_true', dest='nmonitor',
                         default=False, help='Optionally prevents monitoring of backup process')
+    parser.add_argument('-aidfile', '--activity-id-file', required=('monitor' in sys.argv and '-activity_id' not in sys.argv),
+                        action='store', dest='aidfile', default=None,
+                        help='Optionally provide a file to retrieve the activity ID to monitor')
+    parser.add_argument('-outfile', '--output-file', required=False, action='store', dest='outfile',
+                        default=None, help='Optionally provide a file to save the asset and activity ID to')
     args = parser.parse_args()
     return args
 
@@ -160,10 +165,14 @@ def main():
     apiendpoint = "/api/v2"
     args = get_args()
     ppdm, user, password, action, name, id = args.server, args.user, args.password, args.action, args.name, args.id
-    full, nmonitor, aid = args.full, args.nmonitor, args.activity_id
+    full, nmonitor, aid, aidfile, outfile = args.full, args.nmonitor, args.activity_id, args.aidfile, args.outfile
     uri = "https://{}:{}{}".format(ppdm, port, apiendpoint)
     token = authenticate(ppdm, user, password, uri)
     if (action == 'monitor'):
+        if aidfile is not None:
+            file = open(aidfile, 'r')
+            aid = file.read().rstrip()
+            file.close()
         monitor_activity(uri, token, aid)
     else:
         vms = get_asset(uri, token, name, id)
@@ -183,12 +192,17 @@ def main():
         elif (len(vms) == 1):
             print("Performing Ad-hoc backup for VM", vms[0]["name"])
             activityid = adhoc_backup(uri, token, vms[0]["id"], full)
-            if (activityid == None):
+            if (activityid is None):
                 next
             elif (not nmonitor):
                 monitor_activity(uri, token, activityid)
             else:
-                print("Activity ID:",activityid)
+                print("Activity ID:", activityid)
+                if (outfile is not None):
+                    file = open(outfile, 'w')
+                    file.write(activityid)
+                    file.close()
+                    print("Activity ID logged to file",outfile)
     logout(ppdm, user, uri, token)
 
 if __name__ == "__main__":
