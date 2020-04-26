@@ -18,3 +18,4 @@ This repository contains Python scripts for common flows in Dell EMC PowerProtec
 - [File Level Restore](filelevelrestore.py)
 - [Update Protection Policy Schedule](updateprotectionpolicyschedule.py)
 - [Ad-hoc VM Backup](adhocvmbck.py)
+- [Remove Asset Source](removeassetsrc.py)
